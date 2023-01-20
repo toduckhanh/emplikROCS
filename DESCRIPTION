@@ -7,12 +7,12 @@ Maintainer: Duc-Khanh To <toduc@stat.unipd.it>
 Description: Empirical likelihood-based inference for ROC surface analysis: ROC surface, VUS, true class fractions
 License: GPL-3
 Depends: R (>= 3.5.0), stats, utils, graphics
+Imports: KernSmooth, rootSolve, BB, emplik
 Encoding: UTF-8
 LazyData: true
 LazyLoad: yes
 ByteCompile: yes
-RoxygenNote: 7.2.2
+RoxygenNote: 7.2.3
 NeedsCompilation: yes
 URL: https://github.com/toduckhanh/emplikROCS
 BugReports: https://github.com/toduckhanh/emplikROCS/issues
-
