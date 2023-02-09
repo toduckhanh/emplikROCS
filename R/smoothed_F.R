@@ -1,10 +1,12 @@
 ## Smoothed version of empirical distribution -- Adimari (1998)
+
+#' @export
 Fs <- function(X, t) {
   dt <- sort(X)
   n <- length(X)
   if (t < dt[1]) res <- 0
   else if (t == dt[1]) res <- 1 / (2 * n)
-  else if(t > dt[n]) res <- 1
+  else if (t > dt[n]) res <- 1
   else {
     id <- which(dt >= t)[1] # i + 1
     F1 <- (2 * (id - 1) - 1) / (2 * n) # mean(X <= dt[id])
@@ -15,6 +17,8 @@ Fs <- function(X, t) {
 }
 
 ## Smoothed version of F in present of ties
+
+#' @export
 Fs_ties <- function(X, t) {
   dt <- sort(unique(X))
   n <- length(dt)
@@ -23,7 +27,7 @@ Fs_ties <- function(X, t) {
   else if (t > dt[n]) res <- 1
   else {
     id <- which(dt >= t)[1] # i + 1
-    if(id == 2){
+    if (id == 2) {
       F1 <- 0.5 * mean(X <= dt[id - 1])
     } else {
       F1 <- (mean(X <= dt[id - 1]) + mean(X <= dt[id - 2])) * 0.5

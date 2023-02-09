@@ -6,6 +6,7 @@
 #' @import stats
 #' @import utils
 
+#' @export
 empi_llike_3C <- function(X1, X2, X3, n1, n2, n3, tcf1, tcf2, tcf3, tau,
                           type_F = c("empi", "Adi", "Adi_ties")) {
   ll <- Inf
@@ -49,6 +50,7 @@ empi_llike_3C <- function(X1, X2, X3, n1, n2, n3, tcf1, tcf2, tcf3, tau,
 }
 
 ## ---- bootstrap procedure to compute w for EL for TCF2 ----
+#' @export
 bts_func_3C <- function(X1, X2, X3, n1, n2, n3, tcf1, tcf2, tcf3,
                         enlarged = TRUE, B, type_F) {
   empi_bts <- sapply(1:B, function(i){
@@ -57,7 +59,7 @@ bts_func_3C <- function(X1, X2, X3, n1, n2, n3, tcf1, tcf2, tcf3,
       X1.b <- sample(X1, n1, replace = TRUE)
       X2.b <- sample(X2, n2, replace = TRUE)
       X3.b <- sample(X3, n3, replace = TRUE)
-      if(enlarged){
+      if (enlarged) {
         X1.b <- c(X1.b, min(X1), max(X1))
         X2.b <- c(X2.b, min(X2), max(X2))
         X3.b <- c(X3.b, min(X3), max(X3))
@@ -82,18 +84,61 @@ bts_func_3C <- function(X1, X2, X3, n1, n2, n3, tcf1, tcf2, tcf3,
   return(r_est)
 }
 
+#' @export
+bts_func_3C_2 <- function(X1, X2, X3, n1, n2, n3, tcf1, tcf2, tcf3,
+                          enlarged = TRUE, B, type_F) {
+  empi_bts <- sapply(1:B, function(i){
+    flag <- 0
+    while(flag == 0){
+      X1.b <- sample(X1, n1, replace = TRUE)
+      X2.b <- sample(X2, n2, replace = TRUE)
+      X3.b <- sample(X3, n3, replace = TRUE)
+      #
+      tau1_est <- quantile(X1.b, tcf1, names = FALSE)
+      tau2_est <- quantile(X3.b, 1 - tcf3, names = FALSE)
+      if (tau1_est > tau2_est) {
+        temp <- tau2_est
+        tau2_est <- tau1_est
+        tau1_est <- temp
+      }
+      if (enlarged) {
+        X1.b <- c(X1.b, min(X1), max(X1))
+        X2.b <- c(X2.b, min(X2), max(X2))
+        X3.b <- c(X3.b, min(X3), max(X3))
+      }
+      flag <- as.numeric((mean(X1.b) < mean(X2.b)) * (mean(X2.b) < mean(X3.b)))
+    }
+    res <- empi_llike_3C(X1 = X1.b, X2 = X2.b, X3 = X3.b, n1 = length(X1.b),
+                         n2 = length(X2.b), n3 = length(X3.b), tcf1 = tcf1,
+                         tcf2 = tcf2, tcf3 = tcf3, tau = c(tau1_est, tau2_est),
+                         type_F = type_F)
+    return(res)
+  })
+  empi_bts[is.na(empi_bts)] <- Inf
+  r_est <- ((7 / 9)^3) / median(empi_bts)
+  return(r_est)
+}
+
+
 ## ---- main function ----
 
 #' @export
-EL3C <- function(X1, X2, X3, n1, n2, n3, tcf1, tcf2, tcf3, tau, type_F,
-                 enlarged = TRUE, B = 200, type_F_B) {
+EL3C <- function(X1, X2, X3, n1, n2, n3, tcf1, tcf2, tcf3, tau,
+                 type_F = c("empi", "Adi", "Adi_ties"), enlarged = TRUE,
+                 B = 200, type_F_B) {
   ll_est <- empi_llike_3C(X1 = X1, X2 = X2, X3 = X3, n1 = n1, n2 = n2, n3 = n3,
                           tcf1 = tcf1, tcf2 = tcf2, tcf3 = tcf3,
                           tau = tau, type_F = type_F)
   if(is.na(ll_est)) ll_est <- Inf
   ll_est_adj <- ll_est
   if(!is.infinite(ll_est)){
-    tcf2_est <- Fs(X2, tau[2]) - Fs(X2, tau[1])
+    # tcf2_est <- Fs(X2, tau[2]) - Fs(X2, tau[1])
+    type_F <- match.arg(type_F)
+    tcf2_est <- switch(type_F,
+                       empi = mean(X2 <= tau[2]) - mean(X2 <= tau[1]),
+                       Adi = Fs(X2, tau[2]) - Fs(X2, tau[1]),
+                       Adi_ties = Fs_ties(X2, tau[2]) - Fs_ties(X2, tau[1])
+    )
     r_est <- bts_func_3C(X1 = X1, X2 = X2, X3 = X3, n1 = n1, n2 = n2, n3 = n3,
                          tcf1 = tcf1, tcf2 = tcf2_est, tcf3 = tcf3,
                          enlarged = enlarged, B = B, type_F = type_F_B)
