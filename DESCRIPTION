@@ -6,8 +6,9 @@ Author: Duc-Khanh To [aut, cre] (<https://orcid.org/0000-0002-4641-0764>)
 Maintainer: Duc-Khanh To <toduc@stat.unipd.it>
 Description: Empirical likelihood-based inference for ROC surface analysis: ROC surface, VUS, true class fractions
 License: GPL-3
-Depends: R (>= 3.5.0), stats, utils, graphics
-Imports: KernSmooth, rootSolve, BB, emplik
+Depends: R (>= 3.5.0), stats, utils, graphics, Rcpp (>= 0.12.3)
+Imports: rgl, misc3d, KernSmooth, rootSolve, BB, emplik
+LinkingTo: Rcpp, RcppArmadillo
 Encoding: UTF-8
 LazyData: true
 LazyLoad: yes

@@ -84,7 +84,6 @@ bts_func_3C <- function(X1, X2, X3, n1, n2, n3, tcf1, tcf2, tcf3,
   return(r_est)
 }
 
-#' @export
 bts_func_3C_2 <- function(X1, X2, X3, n1, n2, n3, tcf1, tcf2, tcf3,
                           enlarged = TRUE, B, type_F) {
   empi_bts <- sapply(1:B, function(i){
@@ -147,5 +146,47 @@ EL3C <- function(X1, X2, X3, n1, n2, n3, tcf1, tcf2, tcf3, tau,
   return(ll_est_adj)
 }
 
-
-
+#' @export
+EL_ci_tcf2 <- function(X1, X2, X3, n1, n2, n3, tcf10, tcf30, ci_level = 0.95,
+                       enlarged = TRUE, B = 200, seed, plot = TRUE) {
+  ###
+  tau1_est <- quantile(X1, probs = tcf10)
+  tau2_est <- quantile(X3, probs = 1 - tcf30)
+  tcf2_emp <- mean(X2 <= tau2_est) - mean(X2 <= tau1_est)
+  if(missing(seed)) seed <- 32
+  set.seed(seed)
+  r_est <- bts_func_3C(X1 = X1, X2 = X2, X3 = X3, n1 = n1, n2 = n2, n3 = n3,
+                       tcf1 = tcf10, tcf2 = tcf2_emp, tcf3 = tcf30,
+                       enlarged = enlarged, B = B, type_F = "Adi_ties")
+  ##
+  myfun <- function(theta, r_adj, qc) {
+    ll_est <- empi_llike_3C(X1 = X1, X2 = X2, X3 = X3, n1 = n1, n2 = n2,
+                            n3 = n3, tcf1 = tcf10, tcf2 = theta, tcf3 = tcf30,
+                            tau = c(tau1_est, tau2_est), type_F = "empi")
+    if(is.na(ll_est)) ll_est <- Inf
+    ll_est_adj <- ll_est
+    if(!is.infinite(ll_est)){
+      ll_est_adj <- r_adj * ll_est_adj
+    }
+    return(ll_est_adj - qc)
+  }
+  LI_eng <- uniroot(f = myfun, interval = c(0, tcf2_emp),
+                    qc = qchisq(ci_level, 1), r_adj = r_est)$root
+  UI_eng <- uniroot(f = myfun, interval = c(tcf2_emp, 1),
+                    qc = qchisq(ci_level, 1), r_adj = r_est)$root
+  ci_tcf2 <- c(LI_eng, UI_eng)
+  ##
+  if (plot) {
+    x22 <- seq(0, 1, length.out = 101)
+    ll2 <- sapply(x22, function(x) {
+      myfun(x, qc = qchisq(ci_level, 1), r_adj = r_est) + qchisq(ci_level, 1)
+    })
+    plot(x22, exp(-0.5*ll2), type = "l", xaxs = "i", yaxs = "i", xlim = c(0, 1),
+         ylim = c(0, 1), xlab = "TCF 2", ylab = "Emprical likelihood ratio")
+    abline(h = exp(-0.5*qchisq(ci_level, 1)), lty = 2)
+    abline(v = c(LI_eng, UI_eng), lty = 2)
+    points(x = tcf2_emp, y = 0, pch = 16)
+    abline(v = tcf2_emp, lty = 2, col = "blue")
+  }
+  return(list(tcf2_emp = tcf2_emp, ci_tcf2 = ci_tcf2))
+}
