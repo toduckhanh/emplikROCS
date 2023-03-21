@@ -118,6 +118,116 @@ bts_func_3C_2 <- function(X1, X2, X3, n1, n2, n3, tcf1, tcf2, tcf3,
   return(r_est)
 }
 
+#' @export
+empi_llike_C2 <- function(X2, n2, tcf2, tau,
+                          type_F = c("empi", "Adi", "Adi_ties")) {
+  ll <- Inf
+  r2 <- range(X2)
+  ckt12 <- as.numeric(tau[1] >= r2[1] & tau[1] <= r2[2])
+  ckt21 <- as.numeric(tau[2] >= r2[1] & tau[2] <= r2[2])
+  if(ckt12 | ckt21) {
+    type_F <- match.arg(type_F)
+    F2_tau12 <- switch(type_F,
+                       empi = mean(X2 <= tau[2]) - mean(X2 <= tau[1]),
+                       Adi = Fs(X2, tau[2]) - Fs(X2, tau[1]),
+                       Adi_ties = Fs_ties(X2, tau[2]) - Fs_ties(X2, tau[1])
+    )
+    if (F2_tau12 == 0) {
+      ll <- Inf
+    } else {
+      ll <- 2 * n2 * (F2_tau12 * log(F2_tau12 / tcf2) +
+                        (1 - F2_tau12) * log((1 - F2_tau12) / (1 - tcf2)))
+    }
+  }
+  return(ll)
+}
+
+#' @export
+empi_llike_C3 <- function(X3, n3, tcf3, tau,
+                          type_F = c("empi", "Adi", "Adi_ties")) {
+  ll <- Inf
+  r3 <- range(X3)
+  ckt22 <- as.numeric(tau[2] >= r3[1] & tau[2] <= r3[2])
+  if(ckt22) {
+    type_F <- match.arg(type_F)
+    F3_tau2 <- switch(type_F,
+                      empi = mean(X3 <= tau[2]),
+                      Adi = Fs(X3, tau[2]),
+                      Adi_ties = Fs_ties(X3, tau[2])
+    )
+    ll <- 2 * n3 * (F3_tau2 * log(F3_tau2 / (1 - tcf3)) +
+                      (1 - F3_tau2) * log((1 - F3_tau2) / tcf3))
+  }
+  return(ll)
+}
+
+#' @export
+empi_llike_C1 <- function(X1, n1, tcf1, tau,
+                          type_F = c("empi", "Adi", "Adi_ties")) {
+  ll <- Inf
+  r1 <- range(X1)
+  ckt11 <- as.numeric(tau[1] >= r1[1] & tau[1] <= r1[2])
+  if(ckt11) {
+    type_F <- match.arg(type_F)
+    F1_tau1 <- switch(type_F,
+                      empi = mean(X1 <= tau[1]),
+                      Adi = Fs(X1, tau[1]),
+                      Adi_ties = Fs_ties(X1, tau[1])
+    )
+    ll <- 2 * n1 * (F1_tau1 * log(F1_tau1 / tcf1) +
+                       (1 - F1_tau1) * log((1 - F1_tau1) / (1 - tcf1)))
+  }
+  return(ll)
+}
+
+#' @export
+bts_func_C2_1 <- function(X1, X2, n1, n2, tcf1, tcf2, t2, enlarged = TRUE, B,
+                          type_F) {
+  empi_bts <- sapply(1:B, function(i){
+    flag <- 0
+    while(flag == 0){
+      X1.b <- sample(X1, n1, replace = TRUE)
+      X2.b <- sample(X2, n2, replace = TRUE)
+      if (enlarged) {
+        X1.b <- c(X1.b, min(X1), max(X1))
+        X2.b <- c(X2.b, min(X2), max(X2))
+      }
+      tau1_est <- quantile(X1.b, tcf1, names = FALSE)
+      flag <- as.numeric((mean(X1.b) < mean(X2.b)) * (tau1_est < t2))
+    }
+    ll2_est <- empi_llike_C2(X2 = X2.b, n2 = length(X2.b), tcf2 = tcf2,
+                             tau = c(tau1_est, t2), type_F = type_F)
+    return(ll2_est)
+  })
+  empi_bts[is.na(empi_bts)] <- Inf
+  r_est <- ((7 / 9)^3) / median(empi_bts)
+  return(r_est)
+}
+
+#' @export
+bts_func_C2_2 <- function(X2, X3, n2, n3, tcf2, tcf3, t1, enlarged = TRUE, B,
+                          type_F) {
+  empi_bts <- sapply(1:B, function(i){
+    flag <- 0
+    while(flag == 0){
+      X2.b <- sample(X2, n2, replace = TRUE)
+      X3.b <- sample(X3, n3, replace = TRUE)
+      #
+      if (enlarged) {
+        X2.b <- c(X2.b, min(X2), max(X2))
+        X3.b <- c(X3.b, min(X3), max(X3))
+      }
+      tau2_est <- quantile(X3.b, 1 - tcf3, names = FALSE)
+      flag <- as.numeric((mean(X1.b) < mean(X2.b)) * (tau2_est > t1))
+    }
+    ll2_est <- empi_llike_C2(X2 = X2.b, n2 = length(X2.b), tcf2 = tcf2,
+                             tau = c(t1, tau2_est), type_F = type_F)
+    return(ll2_est)
+  })
+  empi_bts[is.na(empi_bts)] <- Inf
+  r_est <- ((7 / 9)^3) / median(empi_bts)
+  return(r_est)
+}
 
 ## ---- main function ----
 
