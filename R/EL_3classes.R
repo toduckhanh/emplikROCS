@@ -300,3 +300,33 @@ EL_ci_tcf2 <- function(X1, X2, X3, n1, n2, n3, tcf10, tcf30, ci_level = 0.95,
   }
   return(list(tcf2_emp = tcf2_emp, ci_tcf2 = ci_tcf2))
 }
+
+#' @export
+EL_ci_tcf23 <- function(X1, X2, X3, n1, n2, n3, tcf10, t2, ci_level = 0.95,
+                        enlarged, B = 200, seed, col, ...){
+  tau1_est <- quantile(X1, probs = tcf10)
+  tcf2_emp <- mean(X2 <= t2) - mean(X2 <= tau1_est)
+  tcf3_emp <- 1 - mean(X3 <= t2)
+  if(missing(seed)) seed <- 32
+  set.seed(seed)
+  r_est <- bts_func_C2_1(X1 = X1, X2 = X2, n1 = n1, n2 = n2, tcf1 = tcf10,
+                         tcf2 = tcf2_emp, t2 = t2, enlarged = TRUE, B = 200,
+                         type_F = "Adi_ties")
+  WW <- r_est*rchisq(1000, 1) + rchisq(1000, 1)
+  x <- seq(0, 1, length.out = 300)
+  y <- seq(0, 1, length.out = 300)
+  llR_23 <- outer(x, y, FUN = function(x, y){
+    ll_est <- empi_llike_3C(X1 = X1, X2 = X2, X3 = X3, n1 = n1, n2 = n2,
+                            n3 = n3, tcf1 = tcf10, tcf2 = x, tcf3 = y,
+                            tau = c(tau1_est, t2), type_F = "empi")
+    return(ll_est)
+  })
+  if (missing(col)) col = "black"
+  contour(x, y, llR_23, levels = quantile(WW, probs = c(0.90, 0.95, 0.99)),
+          xlab = "TCF 2", ylab = "TCF 3", labels = c("0.90", "0.95", "0.99"),
+          col = col, ...)
+  points(tcf2_emp, tcf3_emp, pch = 16, col = col)
+  return(c(tcf2_emp, tcf3_emp))
+}
+
+

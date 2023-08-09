@@ -10,7 +10,8 @@ tcfs_emp <- function(X1, X2, X3, tau) {
 }
 
 #' @export
-ROC_emp_surface <- function(X1, X2, X3, ncp = 100, main) {
+ROC_emp_surface <- function(X1, X2, X3, ncp = 100, main, color = "gray40",
+                            alpha = 0.5) {
   # , ellipsoid = FALSE, cpts = NULL, ci_level = 0.95) {
   cp <- c(-Inf, seq(min(c(X1, X2, X3)), max(c(X1, X2, X3)),
                     length.out = ncp - 2), Inf)
@@ -50,7 +51,7 @@ ROC_emp_surface <- function(X1, X2, X3, ncp = 100, main) {
                           c(-0.5321618, 0.7880925, 0.3093767, 0),
                           c(0, 0, 0, 1))
   par3d(windowRect = 50 + c(0, 0, 640, 640), userMatrix = my_user_matrix)
-  if (is.null(main)) {
+  if (missing(main)) {
     main <- "Empirical ROC surface"
   }
   plot3d(0, 0, 0, type = "n", box = FALSE, xlab = "", ylab = "", zlab = "",
@@ -63,7 +64,7 @@ ROC_emp_surface <- function(X1, X2, X3, ncp = 100, main) {
     plot.new()
     title(main = main, line = 1)
   })
-  surface3d(tcf1, tcf3, tcf2, col = "gray40", alpha = 0.5)
+  surface3d(tcf1, tcf3, tcf2, col = color, alpha = alpha)
   # if (ellipsoid) {
   #   if (is.null(cpts)) stop("Need to specified pair of thresholds to plot the confidence region.")
   #   else {
